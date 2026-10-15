@@ -9,11 +9,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# Memuat model dan daftar fitur
+
+# Memuat model Pipeline dan daftar fitur
 @st.cache_resource
 def load_model():
-    model = joblib.load("model_airbnb.joblib")
-    features = joblib.load("deployment/feature_airbnb.joblib")
+    model = joblib.load("deployment/model_airbnb_pipeline_v2.joblib")
+    features = joblib.load("deployment/feature_airbnb_pipeline_v2.joblib")
     return model, features
 
 model, features = load_model()
