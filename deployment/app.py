@@ -1,0 +1,78 @@
+import streamlit as st
+import pandas as pd
+import joblib
+
+# Konfigurasi halaman
+st.set_page_config(
+    page_title="Prediksi Harga Airbnb NYC",
+    page_icon="🏠",
+    layout="wide"
+)
+
+# Memuat model dan daftar fitur
+@st.cache_resource
+def load_model():
+    model = joblib.load("model_airbnb.joblib")
+    features = joblib.load("deployment/feature_airbnb.joblib")
+    return model, features
+
+model, features = load_model()
+
+# Judul aplikasi
+st.title("Prediksi Harga Airbnb NYC")
+st.write(
+    "Aplikasi Machine Learning untuk memprediksi harga "
+    "penginapan Airbnb di New York City."
+)
+
+st.divider()
+
+st.subheader("Masukkan Data Airbnb")
+
+# Form input
+with st.form("form_prediksi"):
+    input_data = {}
+
+    col1, col2 = st.columns(2)
+
+    for i, feature in enumerate(features):
+        with col1 if i % 2 == 0 else col2:
+            if feature in ["id", "host_id"]:
+                input_data[feature] = st.number_input(
+                    feature.replace("_", " ").title(),
+                    min_value=0,
+                    value=0,
+                    step=1
+                )
+            elif feature in [
+                "latitude", "longitude", "minimum_nights",
+                "number_of_reviews", "reviews_per_month",
+                "calculated_host_listings_count",
+                "availability_365"
+            ]:
+                input_data[feature] = st.number_input(
+                    feature.replace("_", " ").title(),
+                    value=0.0,
+                    format="%.4f"
+                )
+            else:
+                input_data[feature] = st.text_input(
+                    feature.replace("_", " ").title()
+                )
+
+    submit = st.form_submit_button("Prediksi Harga")
+
+if submit:
+    try:
+        data = pd.DataFrame([input_data], columns=features)
+        prediction = model.predict(data)
+
+        st.success("Prediksi berhasil dilakukan!")
+        st.metric(
+            label="Hasil Prediksi Harga",
+            value=f"${prediction[0]:,.2f} USD"
+        )
+
+    except Exception as e:
+        st.error("Prediksi gagal. Periksa format input dan model.")
+        st.exception(e)
