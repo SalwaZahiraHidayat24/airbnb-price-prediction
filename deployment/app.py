@@ -3,7 +3,7 @@ import pandas as pd
 import joblib
 import logging
 
-logging.basisConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Konfigurasi halaman
