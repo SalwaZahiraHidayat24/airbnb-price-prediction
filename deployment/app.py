@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import logging
+
+logging.basisConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Konfigurasi halaman
 st.set_page_config(
@@ -18,6 +22,17 @@ def load_model():
     return model, features
 
 model, features = load_model()
+
+# Inisialisasi monitoring per sesi pengguna
+if "prediction_attempts" not in st.session_state:
+    st.session_state.prediction_attempts = 0
+
+if "prediction_successes" not in st.session_state:
+    st.session_state.prediction_successes = 0
+
+if "prediction_errors" not in st.session_state:
+    st.session_state.prediction_errors = 0
+
 
 # Judul aplikasi
 st.title("Prediksi Harga Airbnb NYC")
@@ -63,17 +78,69 @@ with st.form("form_prediksi"):
 
     submit = st.form_submit_button("Prediksi Harga")
 
+
 if submit:
+    st.session_state.prediction_attempts += 1
+
+    logger.info(
+        "Prediction attempt #%s",
+        st.session_state.prediction_attempts
+    )
+
     try:
         data = pd.DataFrame([input_data], columns=features)
         prediction = model.predict(data)
+        predicted_price = float(prediction[0])
+
+        st.session_state.prediction_successes += 1
+
+        logger.info(
+            "Prediction successful | attempts=%s | successes=%s",
+            st.session_state.prediction_attempts,
+            st.session_state.prediction_successes
+        )
 
         st.success("Prediksi berhasil dilakukan!")
         st.metric(
             label="Hasil Prediksi Harga",
-            value=f"${prediction[0]:,.2f} USD"
+            value=f"${predicted_price:,.2f} USD"
         )
 
-    except Exception as e:
-        st.error("Prediksi gagal. Periksa format input dan model.")
-        st.exception(e)
+    except Exception:
+        st.session_state.prediction_errors += 1
+
+        logger.exception(
+            "Prediction failed | attempts=%s | errors=%s",
+            st.session_state.prediction_attempts,
+            st.session_state.prediction_errors
+        )
+
+        st.error(
+            "Prediksi gagal. Periksa format input atau hubungi pengelola."
+        )
+
+
+
+# Dashboard monitoring
+st.divider()
+st.subheader("Monitoring Aplikasi")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "Total Percobaan",
+        st.session_state.prediction_attempts
+    )
+
+with col2:
+    st.metric(
+        "Prediksi Berhasil",
+        st.session_state.prediction_successes
+    )
+
+with col3:
+    st.metric(
+        "Prediksi Gagal",
+        st.session_state.prediction_errors
+    )
